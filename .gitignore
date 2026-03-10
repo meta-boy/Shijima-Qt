@@ -43,6 +43,7 @@
 !/Platform/Windows/*.cc
 !/Platform/Windows/*.hpp
 !/find_dlls.sh
+!/package-macos.sh
 !/com.pixelomer.ShijimaQt.png
 !/shijima-qt.ico
 !/com.pixelomer.ShijimaQt.desktop
