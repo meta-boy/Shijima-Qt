@@ -34,6 +34,8 @@
 #include "AssetLoader.hpp"
 #include "ShijimaContextMenu.hpp"
 #include "ShijimaManager.hpp"
+#include "ClaudeSession.hpp"
+#include "ProjectPickerDialog.hpp"
 #include <shimejifinder/utils.hpp>
 
 using namespace shijima;
@@ -74,6 +76,16 @@ ShijimaWidget::ShijimaWidget(MascotData *mascotData,
         setWindowFlags(flags);
     }
     setFixedSize(m_windowWidth, m_windowHeight);
+
+    m_hoverLabel = new QLabel();
+    m_hoverLabel->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint
+        | Qt::WindowDoesNotAcceptFocus | Qt::WindowTransparentForInput | Qt::Tool);
+    m_hoverLabel->setAttribute(Qt::WA_TranslucentBackground);
+    m_hoverLabel->setAttribute(Qt::WA_ShowWithoutActivating);
+    m_hoverLabel->setStyleSheet(
+        "background-color: rgba(0, 0, 0, 160); color: white; "
+        "padding: 2px 6px; border-radius: 4px; font-size: 10px;");
+    m_hoverLabel->hide();
 }
 
 
@@ -282,6 +294,15 @@ void ShijimaWidget::tick() {
     if (m_inspector != nullptr && m_inspector->isVisible()) {
         m_inspector->tick();
     }
+
+    updateHoverLabel();
+
+    // If the terminal was launched and has since exited, dismiss this mascot
+    if (m_claudeSession != nullptr && m_claudeSession->wasLaunched()
+        && !m_claudeSession->isTerminalRunning())
+    {
+        markForDeletion();
+    }
 }
 
 void ShijimaWidget::contextMenuClosed(QCloseEvent *event) {
@@ -304,6 +325,11 @@ ShijimaWidget::~ShijimaWidget() {
         m_inspector->close();
         delete m_inspector;
     }
+    if (m_hoverLabel != nullptr) {
+        m_hoverLabel->hide();
+        delete m_hoverLabel;
+    }
+    delete m_claudeSession;
     setDragTarget(nullptr);
 }
 
@@ -367,5 +393,75 @@ void ShijimaWidget::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::MouseButton::LeftButton) {
         m_dragTarget->m_mascot->state->dragging = false;
         setDragTarget(nullptr);
+    }
+}
+
+void ShijimaWidget::mouseDoubleClickEvent(QMouseEvent *event) {
+    auto pos = event->pos();
+    if (!pointInside(pos)) {
+        event->ignore();
+        return;
+    }
+
+    // Cancel any in-progress drag
+    m_mascot->state->dragging = false;
+    setDragTarget(nullptr);
+
+    if (m_claudeSession == nullptr) {
+        showProjectPicker();
+    } else if (!m_claudeSession->isTerminalRunning()) {
+        m_claudeSession->launchTerminal();
+    } else {
+        m_claudeSession->focusTerminal();
+    }
+}
+
+void ShijimaWidget::showProjectPicker() {
+    ProjectPickerDialog dialog;
+    if (dialog.exec() == QDialog::Accepted && !dialog.selectedProject().isEmpty()) {
+        setClaudeSession(new ClaudeSession(dialog.selectedProject()));
+    }
+}
+
+void ShijimaWidget::setClaudeSession(ClaudeSession *session) {
+    delete m_claudeSession;
+    m_claudeSession = session;
+    updateHoverLabel();
+}
+
+void ShijimaWidget::openOrFocusTerminal() {
+    if (m_claudeSession == nullptr) {
+        showProjectPicker();
+        if (m_claudeSession == nullptr) return;
+    }
+    if (!m_claudeSession->isTerminalRunning()) {
+        m_claudeSession->launchTerminal();
+    } else {
+        m_claudeSession->focusTerminal();
+    }
+}
+
+void ShijimaWidget::updateHoverLabel() {
+    if (m_hoverLabel == nullptr) return;
+
+    if (m_claudeSession != nullptr) {
+        m_hoverLabel->setText(m_claudeSession->displayName());
+        m_hoverLabel->adjustSize();
+
+        int mascotX, mascotY;
+        if (m_windowedMode) {
+            auto globalPos = mapToGlobal(QPoint(0, 0));
+            mascotX = globalPos.x();
+            mascotY = globalPos.y();
+        } else {
+            mascotX = x();
+            mascotY = y();
+        }
+        int labelX = mascotX + width() / 2 - m_hoverLabel->width() / 2;
+        int labelY = mascotY - m_hoverLabel->height() - 4;
+        m_hoverLabel->move(labelX, labelY);
+        m_hoverLabel->show();
+    } else {
+        m_hoverLabel->hide();
     }
 }

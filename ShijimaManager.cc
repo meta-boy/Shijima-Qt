@@ -60,6 +60,8 @@
 #include <QLabel>
 #include <QFormLayout>
 #include <QColorDialog>
+#include <QInputDialog>
+#include <QActionGroup>
 #include <cstring>
 #include <cstdint>
 
@@ -321,8 +323,8 @@ void ShijimaManager::buildToolbar() {
     {
         {
             static const QString key = "multiplicationEnabled";
-            bool initial = m_settings.value(key, 
-                QVariant::fromValue(true)).toBool();
+            bool initial = m_settings.value(key,
+                QVariant::fromValue(false)).toBool();
 
             action = menu->addAction("Enable multiplication");
             action->setCheckable(true);
@@ -364,6 +366,47 @@ void ShijimaManager::buildToolbar() {
                     m_sandboxBackground = dialog.selectedColor();
                     m_settings.setValue(key, colorToString(dialog.selectedColor()));
                     updateSandboxBackground();
+                }
+            });
+        }
+
+        {
+            action = menu->addAction("Terminal application...");
+            connect(action, &QAction::triggered, [this](){
+                QStringList options = { "System Default", "iTerm2", "Kitty",
+                    "Ghostty", "WezTerm", "Custom..." };
+                QStringList values = { "default", "iterm2", "kitty",
+                    "ghostty", "wezterm", "" };
+
+                QString current = m_settings.value("terminalApp", "default").toString();
+
+                QMenu picker;
+                QActionGroup group(&picker);
+                group.setExclusive(true);
+                for (int i = 0; i < options.size(); ++i) {
+                    QAction *opt = picker.addAction(options[i]);
+                    group.addAction(opt);
+                    if (i < values.size() - 1) {
+                        opt->setCheckable(true);
+                        opt->setChecked(current == values[i]);
+                    }
+                }
+                QAction *chosen = picker.exec(QCursor::pos());
+                if (chosen == nullptr) return;
+                int idx = options.indexOf(chosen->text());
+                if (idx >= 0 && idx < values.size() - 1) {
+                    m_settings.setValue("terminalApp", values[idx]);
+                } else if (chosen->text() == "Custom...") {
+                    bool ok;
+                    QString cmd = QInputDialog::getText(this,
+                        "Custom Terminal",
+                        "Enter terminal command:",
+                        QLineEdit::Normal,
+                        current == "default" ? "" : current,
+                        &ok);
+                    if (ok && !cmd.isEmpty()) {
+                        m_settings.setValue("terminalApp", cmd);
+                    }
                 }
             });
         }

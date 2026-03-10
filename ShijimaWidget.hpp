@@ -19,6 +19,7 @@
 // 
 
 #include <QWidget>
+#include <QLabel>
 #include <memory>
 #include <QRegion>
 #include "Asset.hpp"
@@ -34,6 +35,7 @@ class QMouseEvent;
 class QCloseEvent;
 class ShijimaContextMenu;
 class ShimejiInspectorDialog;
+class ClaudeSession;
 
 class ShijimaWidget : public PlatformWidget<QWidget>
 {
@@ -51,6 +53,10 @@ public:
     void markForDeletion() { m_markedForDeletion = true; }
     bool inspectorVisible();
     bool paused() const { return m_paused || m_contextMenuVisible; }
+    ClaudeSession *claudeSession() { return m_claudeSession; }
+    void setClaudeSession(ClaudeSession *session);
+    void showProjectPicker();
+    void openOrFocusTerminal();
     shijima::mascot::manager &mascot() {
         return *m_mascot;
     }
@@ -71,6 +77,7 @@ protected:
     void paintEvent(QPaintEvent *) override;
     void mousePressEvent(QMouseEvent *) override;
     void mouseReleaseEvent(QMouseEvent *) override;
+    void mouseDoubleClickEvent(QMouseEvent *) override;
 private:
     void setDragTarget(ShijimaWidget *target);
     bool isMirroredRender() const;
@@ -100,4 +107,7 @@ private:
     bool m_paused = false;
     bool m_markedForDeletion = false;
     int m_mascotId;
+    ClaudeSession *m_claudeSession = nullptr;
+    QLabel *m_hoverLabel = nullptr;
+    void updateHoverLabel();
 };

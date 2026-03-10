@@ -65,16 +65,9 @@ ifeq ($(PLATFORM),macOS)
 	PLATFORM_LDFLAGS := -lobjc -framework AppKit -framework ApplicationServices
 endif
 
-ifeq ($(PLATFORM),macOS)
-	QT_MACOS_PATH := /opt/local/libexec/qt$(QT_VERSION)/lib
-	QT_FRAMEWORKS = $(addsuffix .framework,$(addprefix -I$(QT_MACOS_PATH)/Qt,$(QT_LIBS)))
-	QT_CFLAGS = -F$(QT_MACOS_PATH) $(addsuffix /Versions/Current/Headers,$(QT_FRAMEWORKS))
-	QT_LDFLAGS = -F$(QT_MACOS_PATH) $(addprefix -framework Qt,$(QT_LIBS))
-else
-	PREFIXED_QT_LIBS = $(addprefix Qt$(QT_VERSION),$(QT_LIBS))
-	QT_CFLAGS = $(shell [ -z "$(QT_LIBS)" ] || $(PKG_CONFIG) --cflags $(PREFIXED_QT_LIBS))
-	QT_LDFLAGS = $(shell [ -z "$(QT_LIBS)" ] || $(PKG_CONFIG) --libs $(PREFIXED_QT_LIBS))
-endif
+PREFIXED_QT_LIBS = $(addprefix Qt$(QT_VERSION),$(QT_LIBS))
+QT_CFLAGS = $(shell [ -z "$(QT_LIBS)" ] || $(PKG_CONFIG) --cflags $(PREFIXED_QT_LIBS))
+QT_LDFLAGS = $(shell [ -z "$(QT_LIBS)" ] || $(PKG_CONFIG) --libs $(PREFIXED_QT_LIBS))
 
 ifeq ($(PLATFORM),macOS)
 	LD_WHOLE_ARCHIVE :=
@@ -154,7 +147,7 @@ OBJECTS = $(patsubst %.rc,%.o,$(patsubst %.c,%.o,$(patsubst %.mm,%.o,$(patsubst 
 CFLAGS = $(STD_CFLAGS) $(CONFIG_CFLAGS) $(PLATFORM_CFLAGS) $(QT_CFLAGS) $(PKG_CFLAGS)
 CXXFLAGS = $(STD_CXXFLAGS) $(CONFIG_CXXFLAGS) $(PLATFORM_CXXFLAGS) $(QT_CFLAGS) $(PKG_CFLAGS)
 LDFLAGS = $(CONFIG_LDFLAGS) $(PLATFORM_LDFLAGS) $(QT_LDFLAGS) $(PKG_LDFLAGS)
-CMAKEFLAGS = $(CONFIG_CMAKEFLAGS)
+CMAKEFLAGS = $(CONFIG_CMAKEFLAGS) -DCMAKE_POLICY_VERSION_MINIMUM=3.5
 
 %.o: %.c
 	$(CC) -MMD -c $(CFLAGS) $(CPPFLAGS) $< -o $@

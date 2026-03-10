@@ -19,13 +19,29 @@
 #include "ShijimaContextMenu.hpp"
 #include "ShijimaWidget.hpp"
 #include "ShijimaManager.hpp"
+#include "ClaudeSession.hpp"
+#include "ProjectPickerDialog.hpp"
 
 ShijimaContextMenu::ShijimaContextMenu(ShijimaWidget *parent)
     : QMenu("Context menu", parent)
 {
     QAction *action;
 
-    // Behaviors menu   
+    // Open Terminal
+    action = addAction("Open Terminal");
+    connect(action, &QAction::triggered, [this](){
+        shijimaParent()->openOrFocusTerminal();
+    });
+
+    // Change Project...
+    action = addAction("Change Project...");
+    connect(action, &QAction::triggered, [this](){
+        shijimaParent()->showProjectPicker();
+    });
+
+    addSeparator();
+
+    // Behaviors menu
     {
         std::vector<std::string> behaviors;
         auto &list = parent->m_mascot->initial_behavior_list();

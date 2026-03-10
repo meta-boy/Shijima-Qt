@@ -17,6 +17,8 @@ SOURCES = main.cc \
 	ShimejiInspectorDialog.cc \
 	DefaultMascot.cc \
 	ShijimaHttpApi.cc \
+	ClaudeSession.cc \
+	ProjectPickerDialog.cc \
 	cli.cc \
 	resources.rc
 
